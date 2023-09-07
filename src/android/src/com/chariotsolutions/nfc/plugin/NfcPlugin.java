@@ -80,6 +80,8 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
     private final List<IntentFilter> intentFilters = new ArrayList<>();
     private final ArrayList<String[]> techLists = new ArrayList<>();
 
+    private Intent actionNdefDiscoveredIntent = null;
+
     private NdefMessage p2pMessage = null;
     private PendingIntent pendingIntent = null;
 
@@ -296,10 +298,26 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
         callbackContext.success();
     }
 
+    private void processNDefTagDiscoveredIntent() {
+        if (actionNdefDiscoveredIntent == null) {
+            return;
+        }
+
+        setIntent(actionNdefDiscoveredIntent);
+        parseMessage();
+        actionNdefDiscoveredIntent = null;
+    }
+
     private void init(CallbackContext callbackContext) {
         Log.d(TAG, "Enabling plugin " + getIntent());
 
         startNfc();
+
+        // store the intents received before registration to reprocess them later
+        if (intentFilters.isEmpty()) {
+            actionNdefDiscoveredIntent = new Intent(getIntent());
+        }
+
         if (!recycledIntent()) {
             parseMessage();
         }
@@ -319,6 +337,8 @@ public class NfcPlugin extends CordovaPlugin implements NfcAdapter.OnNdefPushCom
             mimeType = data.getString(0);
             intentFilters.add(createIntentFilter(mimeType));
             restartNfc();
+            // Try re-processing the intents that are received before registration (Mime type registration)
+            processNDefTagDiscoveredIntent();
             callbackContext.success();
         } catch (MalformedMimeTypeException e) {
             callbackContext.error("Invalid MIME Type " + mimeType);
