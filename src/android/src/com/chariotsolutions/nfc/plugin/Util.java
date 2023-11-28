@@ -42,6 +42,10 @@ public class Util {
                 } catch (NullPointerException e) {
                   json.put("canMakeReadOnly", JSONObject.NULL);
                 }
+                catch (SecurityException ex) {
+                    Log.e(TAG, "Failed to read ndef tag, could be due to incomplete read " + ex.getMessage());
+                    json.put("canMakeReadOnly", JSONObject.NULL);
+                }
             } catch (JSONException e) {
                 Log.e(TAG, "Failed to convert ndef into json: " + ndef.toString(), e);
             }
